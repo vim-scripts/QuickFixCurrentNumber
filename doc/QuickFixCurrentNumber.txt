@@ -1,0 +1,114 @@
+*QuickFixCurrentNumber.txt*	Locate the quickfix item at the cursor position.
+
+		  QUICK FIX CURRENT NUMBER    by Ingo Karkat
+						   *QuickFixCurrentNumber.vim*
+description			|QuickFixCurrentNumber-description|
+usage				|QuickFixCurrentNumber-usage|
+installation			|QuickFixCurrentNumber-installation|
+configuration			|QuickFixCurrentNumber-configuration|
+limitations			|QuickFixCurrentNumber-limitations|
+known problems			|QuickFixCurrentNumber-known-problems|
+todo				|QuickFixCurrentNumber-todo|
+history				|QuickFixCurrentNumber-history|
+
+==============================================================================
+DESCRIPTION				   *QuickFixCurrentNumber-description*
+
+You can navigate through the errors in the |quickfix| list with the built-in
+|:cfirst|, |:cnext|, etc. commands. The quickfix and location lists have a
+notion of "current item" (the highlighted one), and you can easily jump back
+to it or others. But there's no built-in way to find out which error is at or
+after the current cursor position, and you cannot limit the navigation to
+errors in the current buffer.
+
+This plugin provides additional quickfix commands like |:Cnr| and |:Cgo| to
+print / go to the item at or after the cursor position, and motions like |]q|
+to go to previous / next errors in the current buffer, based on the cursor
+position.
+
+SOURCE									     *
+
+Inspired by the following Stack Overflow question:
+    http://stackoverflow.com/questions/14778612/jump-to-the-errors-in-the-quickfix-or-location-list-for-the-current-line-in-vim
+
+==============================================================================
+USAGE						 *QuickFixCurrentNumber-usage*
+								 *:Cnr* *:Lnr*
+:Cnr, :Lnr		Print the number of the item in the quickfix /
+			location list for the current cursor position (or the
+			next item after the cursor).
+						      *:Cgo* *:Lgo* *g_CTRL-Q*
+:Cgo, :Lgo, g<C-Q>	Go to the item in the quickfix / location list for the
+			current cursor position (or the next item after the
+			cursor).
+							 *[q* *]q* *g[q* *g]q*
+[q / ]q			Go to [count] previous / next start of an error in the
+			current buffer.
+g[q / g]q		Go to [count] first / last error in the current
+			buffer.
+							 *[l* *]l* *g[l* *g]l*
+[l / ]l			Go to [count] previous / next start of a location list
+			item in the current buffer.
+g[l / g]l		Go to [count] first / last location list item in the
+			current buffer.
+
+==============================================================================
+INSTALLATION				  *QuickFixCurrentNumber-installation*
+
+This script is packaged as a |vimball|. If you have the "gunzip" decompressor
+in your PATH, simply edit the *.vmb.gz package in Vim; otherwise, decompress
+the archive first, e.g. using WinZip. Inside Vim, install by sourcing the
+vimball or via the |:UseVimball| command. >
+    vim QuickFixCurrentNumber*.vmb.gz
+    :so %
+To uninstall, use the |:RmVimball| command.
+
+DEPENDENCIES				  *QuickFixCurrentNumber-dependencies*
+
+- Requires Vim 7.0 or higher.
+- Requires the |ingo-library.vim| plugin (vimscript #4433), version 1.000 or
+  higher.
+
+==============================================================================
+CONFIGURATION				 *QuickFixCurrentNumber-configuration*
+
+For a permanent configuration, put the following commands into your |vimrc|:
+						 *QuickFixCurrentNumber-remap*
+If you want to use different mappings, map your keys to the
+<Plug>(QuickFixCurrentNumber...) mapping targets _before_ sourcing the script
+(e.g. in your |vimrc|): >
+    nmap g<C-q> <Plug>(QuickFixCurrentNumberGo)
+    nmap ]q     <Plug>(QuickFixCurrentNumberQNext)
+    nmap [q     <Plug>(QuickFixCurrentNumberQPrev)
+    nmap ]l     <Plug>(QuickFixCurrentNumberLNext)
+    nmap [l     <Plug>(QuickFixCurrentNumberLPrev)
+    nmap g[q    <Plug>(QuickFixCurrentNumberQFirst)
+    nmap g]q    <Plug>(QuickFixCurrentNumberQLast)
+    nmap g[l    <Plug>(QuickFixCurrentNumberLFirst)
+    nmap g]l    <Plug>(QuickFixCurrentNumberLLast)
+<
+==============================================================================
+LIMITATIONS				   *QuickFixCurrentNumber-limitations*
+
+KNOWN PROBLEMS				*QuickFixCurrentNumber-known-problems*
+
+TODO						  *QuickFixCurrentNumber-todo*
+
+IDEAS						 *QuickFixCurrentNumber-ideas*
+
+==============================================================================
+HISTORY					       *QuickFixCurrentNumber-history*
+
+1.00	19-Feb-2013
+First published version.
+
+0.01	08-Feb-2013
+Started development.
+
+==============================================================================
+Copyright: (C) 2013 Ingo Karkat
+The VIM LICENSE applies to this script; see |copyright|.
+
+Maintainer:	Ingo Karkat <ingo@karkat.de>
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:

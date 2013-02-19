@@ -1,0 +1,37 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=4449
+
+DESCRIPTION
+You can navigate through the errors in the quickfix list with the built-in
+:cfirst, :cnext, etc. commands. The quickfix and location lists have a
+notion of "current item" (the highlighted one), and you can easily jump back
+to it or others. But there's no built-in way to find out which error is at or
+after the current cursor position, and you cannot limit the navigation to
+errors in the current buffer.
+
+This plugin provides additional quickfix commands like :Cnr and :Cgo to
+print / go to the item at or after the cursor position, and motions like ]q
+to go to previous / next errors in the current buffer, based on the cursor
+position.
+
+SOURCE
+Inspired by the following Stack Overflow question:
+    http://stackoverflow.com/questions/14778612/jump-to-the-errors-in-the-quickfix-or-location-list-for-the-current-line-in-vim
+
+USAGE
+:Cnr, :Lnr              Print the number of the item in the quickfix /
+                        location list for the current cursor position (or the
+                        next item after the cursor).
+
+:Cgo, :Lgo, g<C-Q>      Go to the item in the quickfix / location list for the
+                        current cursor position (or the next item after the
+                        cursor).
+
+[q / ]q                 Go to [count] previous / next start of an error in the
+                        current buffer.
+g[q / g]q               Go to [count] first / last error in the current
+                        buffer.
+
+[l / ]l                 Go to [count] previous / next start of a location list
+                        item in the current buffer.
+g[l / g]l               Go to [count] first / last location list item in the
+                        current buffer.
