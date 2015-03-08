@@ -24,7 +24,9 @@ USAGE
 
 :Cgo, :Lgo, g<C-Q>      Go to the item in the quickfix / location list for the
                         current cursor position (or the next item after the
-                        cursor).
+                        cursor). g<C-Q> also jumps to the last item if the
+                        cursor is after all errors; the commands then abort
+                        with an error.
 
 [q / ]q                 Go to [count] previous / next start of an error in the
                         current buffer.

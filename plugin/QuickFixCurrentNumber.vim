@@ -3,12 +3,15 @@
 " DEPENDENCIES:
 "   - QuickFixCurrentNumber.vim autoload script
 "
-" Copyright: (C) 2013 Ingo Karkat
+" Copyright: (C) 2013-2015 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.10.005	08-Mar-2015	QuickFixCurrentNumber#Go() takes another
+"				a:isFallbackToLast argument to support g<C-Q>
+"				jumping back to the last error.
 "   1.00.004	19-Feb-2013	Don't print errors for g<C-q> mapping.
 "   1.00.003	11-Feb-2013	Implement moving to next / previous error in
 "				current buffer with ]q etc.
@@ -28,13 +31,13 @@ let g:loaded_QuickFixCurrentNumber = 1
 command! -bar Cnr call QuickFixCurrentNumber#Print(0)
 command! -bar Lnr call QuickFixCurrentNumber#Print(1)
 
-command! -bar Cgo call QuickFixCurrentNumber#Go(1, 0)
-command! -bar Lgo call QuickFixCurrentNumber#Go(1, 1)
+command! -bar Cgo call QuickFixCurrentNumber#Go(1, 0, 0)
+command! -bar Lgo call QuickFixCurrentNumber#Go(1, 0, 1)
 
 
 "- mappings --------------------------------------------------------------------
 
-nnoremap <silent> <Plug>(QuickFixCurrentNumberGo) :<C-u>if ! QuickFixCurrentNumber#Go(0)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberGo) :<C-u>if ! QuickFixCurrentNumber#Go(0, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>endif<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberGo)', 'n')
     nmap g<C-q> <Plug>(QuickFixCurrentNumberGo)
 endif

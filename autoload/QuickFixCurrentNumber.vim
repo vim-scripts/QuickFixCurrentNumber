@@ -3,12 +3,18 @@
 " DEPENDENCIES:
 "   - ingo/msg.vim autoload script
 "
-" Copyright: (C) 2013 Ingo Karkat
+" Copyright: (C) 2013-2015 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.10.006	08-Mar-2015	Add a:isFallbackToLast argument to fallback to
+"				the last error location in case the cursor is
+"				already behind all of them.
+"   1.01.005	07-Feb-2015	Factor out
+"				ingo#window#quickfix#TranslateVirtualColToByteCount()
+"				into ingo-library.
 "   1.00.004	19-Feb-2013	Don't print errors for g<C-q> mapping.
 "   1.00.003	11-Feb-2013	Factor out common checks and errors to
 "				s:CheckAndGetNumber().
@@ -39,16 +45,7 @@ function! s:QflistSort( i1, i2 )
 	else
 	    " Different column type, translate the virtual column into the
 	    " byte count.
-	    let l:translatable = (a:i1.vcol ? a:i1 : a:i2)
-	    let l:neededTabstop = getbufvar(l:translatable.bufnr, '&tabstop')
-	    if l:neededTabstop != &tabstop
-		let l:save_tabstop = &l:tabstop
-		let &l:tabstop = l:neededTabstop
-	    endif
-		let l:translatedCol = len(matchstr(getbufline(l:translatable.bufnr, l:translatable.lnum)[0], '^.*\%<'.(l:translatable.col + 1).'v'))
-	    if exists('l:save_tabstop')
-		let &l:tabtop = l:save_tabstop
-	    endif
+	    let l:translatedCol = ingo#window#quickfix#TranslateVirtualColToByteCount(a:i1.vcol ? a:i1 : a:i2)
 	    if a:i1.vcol
 		return l:translatedCol == a:i2.col ? s:KeepOrder(a:i1, a:i2) : l:translatedCol > a:i2.col ? 1 : -1
 	    else
@@ -71,7 +68,7 @@ function! s:GetBufferQflist( qflist )
 
     return sort(filter(copy(a:qflist), 'v:val.bufnr ==' . bufnr('')), 's:QflistSort')
 endfunction
-function! s:GetNumber( qflist )
+function! s:GetNumber( qflist, isFallbackToLast )
     let l:bufferQflist = s:GetBufferQflist(a:qflist)
     let l:result = {'isEmpty': len(l:bufferQflist) == 0, 'idx': -1, 'nr': 0, 'isOnEntry': 0, 'bufferQflist': l:bufferQflist}
 
@@ -96,17 +93,22 @@ function! s:GetNumber( qflist )
 	return l:result
     endfor
 
+    if a:isFallbackToLast && ! l:result.isEmpty
+	let l:result.idx = len(l:bufferQflist) - 1
+	let l:result.nr = l:bufferQflist[l:result.idx].number
+    endif
+
     return l:result
 endfunction
 
 
-function! s:CheckAndGetNumber( isLocationList, isPrintErrors )
+function! s:CheckAndGetNumber( isLocationList, isPrintErrors, isFallbackToLast )
     if &l:buftype ==# 'quickfix'
 	call ingo#msg#ErrorMsg('Already in quickfix')
 	return {'nr': 0}
     endif
 
-    let l:result = s:GetNumber(a:isLocationList ? getloclist(0) : getqflist())
+    let l:result = s:GetNumber(a:isLocationList ? getloclist(0) : getqflist(), a:isFallbackToLast)
     if ! a:isPrintErrors
 	return l:result
     endif
@@ -119,17 +121,17 @@ function! s:CheckAndGetNumber( isLocationList, isPrintErrors )
     return l:result
 endfunction
 function! QuickFixCurrentNumber#Print( isLocationList )
-    let l:nr = s:CheckAndGetNumber(a:isLocationList, 1).nr
+    let l:nr = s:CheckAndGetNumber(a:isLocationList, 1, 0).nr
     if l:nr > 0
 	let l:qflist = (a:isLocationList ? getloclist(0) : getqflist())
 	echomsg printf('(%d of %d): %s', l:nr, len(l:qflist), get(l:qflist[l:nr - 1], 'text', ''))
     endif
 endfunction
 
-function! QuickFixCurrentNumber#Go( isPrintErrors, ... )
+function! QuickFixCurrentNumber#Go( isPrintErrors, isFallbackToLast, ... )
     let l:isLocationList = (a:0 ? a:1 : ! empty(getloclist(0)))
     let l:cmdPrefix = (l:isLocationList ? 'l' : 'c')
-    let l:nr = s:CheckAndGetNumber(l:isLocationList, a:isPrintErrors).nr
+    let l:nr = s:CheckAndGetNumber(l:isLocationList, a:isPrintErrors, a:isFallbackToLast).nr
     if l:nr <= 0
 	return 0
     endif
@@ -157,7 +159,7 @@ function! s:GotoIdx( isLocationList, bufferQflist, idx )
 endfunction
 
 function! QuickFixCurrentNumber#Next( count, isLocationList, isBackward )
-    let l:result = s:CheckAndGetNumber(a:isLocationList, 0)
+    let l:result = s:CheckAndGetNumber(a:isLocationList, 0, 0)
     if a:isBackward
 	if l:result.nr == 0 && len(l:result.bufferQflist) > 0
 	    " There are no more matches after the cursor, so the last match in
