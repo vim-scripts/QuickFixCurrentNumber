@@ -2,6 +2,7 @@
 "
 " DEPENDENCIES:
 "   - QuickFixCurrentNumber.vim autoload script
+"   - ingo/err.vim autoload script
 "
 " Copyright: (C) 2013-2015 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -9,6 +10,18 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.11.006	11-Mar-2015	:Cgo and :Lgo take [!] to behave like g<C-Q>,
+"				i.e. jump back to the last error instead of
+"				aborting. This is helpful because g<C-Q> only
+"				crudely distinguishes between location and
+"				quickfix list, and both may be in use. Thanks to
+"				Enno Nagel for the suggestion.
+"				Allow to disable all default mappings via
+"				g:no_QuickFixCurrentNumber_maps.
+"				Use ingo/err.vim for error reporting. Move the
+"				beep in s:GotoIdx() into the mappings, to be
+"				consistent with <Plug>(QuickFixCurrentNumberGo),
+"				and have a clean separation.
 "   1.10.005	08-Mar-2015	QuickFixCurrentNumber#Go() takes another
 "				a:isFallbackToLast argument to support g<C-Q>
 "				jumping back to the last error.
@@ -28,52 +41,58 @@ let g:loaded_QuickFixCurrentNumber = 1
 
 "- commands --------------------------------------------------------------------
 
-command! -bar Cnr call QuickFixCurrentNumber#Print(0)
-command! -bar Lnr call QuickFixCurrentNumber#Print(1)
+command! -bar Cnr if ! QuickFixCurrentNumber#Print(0) | echoerr ingo#err#Get() | endif
+command! -bar Lnr if ! QuickFixCurrentNumber#Print(1) | echoerr ingo#err#Get() | endif
 
-command! -bar Cgo call QuickFixCurrentNumber#Go(1, 0, 0)
-command! -bar Lgo call QuickFixCurrentNumber#Go(1, 0, 1)
+command! -bar -bang Cgo if ! QuickFixCurrentNumber#Go(1, <bang>0, 0) | echoerr ingo#err#Get() | endif
+command! -bar -bang Lgo if ! QuickFixCurrentNumber#Go(1, <bang>0, 1) | echoerr ingo#err#Get() | endif
 
 
 "- mappings --------------------------------------------------------------------
 
-nnoremap <silent> <Plug>(QuickFixCurrentNumberGo) :<C-u>if ! QuickFixCurrentNumber#Go(0, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberGo) :<C-u>if ! QuickFixCurrentNumber#Go(0, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+
+nnoremap <silent> <Plug>(QuickFixCurrentNumberQNext)  :<C-u>if ! QuickFixCurrentNumber#Next(v:count1, 0, 0)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberQPrev)  :<C-u>if ! QuickFixCurrentNumber#Next(v:count1, 0, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberLNext)  :<C-u>if ! QuickFixCurrentNumber#Next(v:count1, 1, 0)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberLPrev)  :<C-u>if ! QuickFixCurrentNumber#Next(v:count1, 1, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+
+nnoremap <silent> <Plug>(QuickFixCurrentNumberQFirst) :<C-u>if ! QuickFixCurrentNumber#Border(v:count1, 0, 0)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberQLast)  :<C-u>if ! QuickFixCurrentNumber#Border(v:count1, 0, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberLFirst) :<C-u>if ! QuickFixCurrentNumber#Border(v:count1, 1, 0)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+nnoremap <silent> <Plug>(QuickFixCurrentNumberLLast)  :<C-u>if ! QuickFixCurrentNumber#Border(v:count1, 1, 1)<Bar>execute "normal! \<lt>C-\>\<lt>C-n>\<lt>Esc>"<Bar>if ingo#err#IsSet()<Bar>echoerr ingo#err#Get()<Bar>endif<Bar>endif<CR>
+
+
+if ! exists('g:no_QuickFixCurrentNumber_maps')
 if ! hasmapto('<Plug>(QuickFixCurrentNumberGo)', 'n')
     nmap g<C-q> <Plug>(QuickFixCurrentNumberGo)
 endif
 
-nnoremap <silent> <Plug>(QuickFixCurrentNumberQNext) :<C-u>call QuickFixCurrentNumber#Next(v:count1, 0, 0)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberQNext)', 'n')
     nmap ]q <Plug>(QuickFixCurrentNumberQNext)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberQPrev) :<C-u>call QuickFixCurrentNumber#Next(v:count1, 0, 1)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberQPrev)', 'n')
     nmap [q <Plug>(QuickFixCurrentNumberQPrev)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberLNext) :<C-u>call QuickFixCurrentNumber#Next(v:count1, 1, 0)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberLNext)', 'n')
     nmap ]l <Plug>(QuickFixCurrentNumberLNext)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberLPrev) :<C-u>call QuickFixCurrentNumber#Next(v:count1, 1, 1)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberLPrev)', 'n')
     nmap [l <Plug>(QuickFixCurrentNumberLPrev)
 endif
 
-nnoremap <silent> <Plug>(QuickFixCurrentNumberQFirst) :<C-u>call QuickFixCurrentNumber#Border(v:count1, 0, 0)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberQFirst)', 'n')
     nmap g[q <Plug>(QuickFixCurrentNumberQFirst)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberQLast) :<C-u>call QuickFixCurrentNumber#Border(v:count1, 0, 1)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberQLast)', 'n')
     nmap g]q <Plug>(QuickFixCurrentNumberQLast)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberLFirst) :<C-u>call QuickFixCurrentNumber#Border(v:count1, 1, 0)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberLFirst)', 'n')
     nmap g[l <Plug>(QuickFixCurrentNumberLFirst)
 endif
-nnoremap <silent> <Plug>(QuickFixCurrentNumberLLast) :<C-u>call QuickFixCurrentNumber#Border(v:count1, 1, 1)<CR>
 if ! hasmapto('<Plug>(QuickFixCurrentNumberLLast)', 'n')
     nmap g]l <Plug>(QuickFixCurrentNumberLLast)
+endif
 endif
 
 " vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :

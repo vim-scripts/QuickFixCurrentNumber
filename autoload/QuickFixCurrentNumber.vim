@@ -1,7 +1,7 @@
 " QuickFixCurrentNumber.vim: Locate the quickfix item at the cursor position.
 "
 " DEPENDENCIES:
-"   - ingo/msg.vim autoload script
+"   - ingo/err.vim autoload script
 "
 " Copyright: (C) 2013-2015 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -9,6 +9,16 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.11.007	11-Mar-2015	BUG: Script errors when jump mappings like ]q
+"				are executed in a quickfix / location list. Need
+"				to populate the bufferQflist property in the
+"				returned result and tweak the check in
+"				QuickFixCurrentNumber#Next(). Thanks to Enno
+"				Nagel for reporting this.
+"				Use ingo/err.vim for error reporting. Move the
+"				beep in s:GotoIdx() into the mappings, to be
+"				consistent with <Plug>(QuickFixCurrentNumberGo),
+"				and have a clean separation.
 "   1.10.006	08-Mar-2015	Add a:isFallbackToLast argument to fallback to
 "				the last error location in case the cursor is
 "				already behind all of them.
@@ -103,9 +113,11 @@ endfunction
 
 
 function! s:CheckAndGetNumber( isLocationList, isPrintErrors, isFallbackToLast )
+    call ingo#err#Clear()
+
     if &l:buftype ==# 'quickfix'
-	call ingo#msg#ErrorMsg('Already in quickfix')
-	return {'nr': 0}
+	call ingo#err#Set('Already in quickfix')
+	return {'nr': 0, 'bufferQflist': []}
     endif
 
     let l:result = s:GetNumber(a:isLocationList ? getloclist(0) : getqflist(), a:isFallbackToLast)
@@ -114,18 +126,21 @@ function! s:CheckAndGetNumber( isLocationList, isPrintErrors, isFallbackToLast )
     endif
 
     if l:result.isEmpty
-	call ingo#msg#ErrorMsg(a:isLocationList ? 'No location list' : 'No Errors')
+	call ingo#err#Set(a:isLocationList ? 'No location list' : 'No Errors')
     elseif l:result.nr == 0
-	call ingo#msg#ErrorMsg('No more items')
+	call ingo#err#Set('No more items')
     endif
     return l:result
 endfunction
 function! QuickFixCurrentNumber#Print( isLocationList )
     let l:nr = s:CheckAndGetNumber(a:isLocationList, 1, 0).nr
-    if l:nr > 0
-	let l:qflist = (a:isLocationList ? getloclist(0) : getqflist())
-	echomsg printf('(%d of %d): %s', l:nr, len(l:qflist), get(l:qflist[l:nr - 1], 'text', ''))
+    if l:nr <= 0
+	return 0
     endif
+
+    let l:qflist = (a:isLocationList ? getloclist(0) : getqflist())
+    echomsg printf('(%d of %d): %s', l:nr, len(l:qflist), get(l:qflist[l:nr - 1], 'text', ''))
+    return 1
 endfunction
 
 function! QuickFixCurrentNumber#Go( isPrintErrors, isFallbackToLast, ... )
@@ -150,18 +165,22 @@ endfunction
 
 function! s:GotoIdx( isLocationList, bufferQflist, idx )
     if a:idx < 0 || a:idx >= len(a:bufferQflist)
-	execute "normal! \<C-\>\<C-n>\<Esc>" | " Beep.
-	return
+	return 0
     endif
 
     let l:cmdPrefix = (a:isLocationList ? 'l' : 'c')
     execute a:bufferQflist[a:idx].number . l:cmdPrefix . 'first'
+    return 1
 endfunction
 
 function! QuickFixCurrentNumber#Next( count, isLocationList, isBackward )
     let l:result = s:CheckAndGetNumber(a:isLocationList, 0, 0)
+    if l:result.nr == 0 && len(l:result.bufferQflist) == 0
+	return 0
+    endif
+
     if a:isBackward
-	if l:result.nr == 0 && len(l:result.bufferQflist) > 0
+	if l:result.nr == 0
 	    " There are no more matches after the cursor, so the last match in
 	    " the buffer must be the one before the cursor.
 	    let l:nextIdx = len(l:result.bufferQflist) - a:count
@@ -172,18 +191,19 @@ function! QuickFixCurrentNumber#Next( count, isLocationList, isBackward )
 	let l:nextIdx = l:result.idx + a:count - (l:result.isOnEntry ? 0 : 1)
     endif
 
-    call s:GotoIdx(a:isLocationList, l:result.bufferQflist, l:nextIdx)
+    return s:GotoIdx(a:isLocationList, l:result.bufferQflist, l:nextIdx)
 endfunction
 function! QuickFixCurrentNumber#Border( count, isLocationList, isEnd )
     if &l:buftype ==# 'quickfix'
-	call ingo#msg#ErrorMsg('Already in quickfix')
-	return
+	call ingo#err#Set('Already in quickfix')
+	return 0
     endif
 
     let l:bufferQflist = s:GetBufferQflist(a:isLocationList ? getloclist(0) : getqflist())
     let l:idx = (a:isEnd ? len(l:bufferQflist) - a:count : a:count - 1)
 
-    call s:GotoIdx(a:isLocationList, l:bufferQflist, l:idx)
+    call ingo#err#Clear()
+    return s:GotoIdx(a:isLocationList, l:bufferQflist, l:idx)
 endfunction
 
 " vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :

@@ -38,11 +38,12 @@ USAGE						 *QuickFixCurrentNumber-usage*
 			location list for the current cursor position (or the
 			next item after the cursor).
 						      *:Cgo* *:Lgo* *g_CTRL-Q*
-:Cgo, :Lgo, g<C-Q>	Go to the item in the quickfix / location list for the
-			current cursor position (or the next item after the
-			cursor). g<C-Q> also jumps to the last item if the
-			cursor is after all errors; the commands then abort
-			with an error.
+:Cgo[!], :Lgo[!]	Go to the item in the quickfix / location list for the
+g<C-Q>			current cursor position (or the next item after the
+			cursor). g<C-Q> (and the commands when [!] is given)
+			also jump to the last item if the cursor is after all
+			errors; without [!], the commands then abort with an
+			error.
 							 *[q* *]q* *g[q* *g]q*
 [q / ]q			Go to [count] previous / next start of an error in the
 			current buffer.
@@ -88,7 +89,11 @@ If you want to use different mappings, map your keys to the
     nmap g]q    <Plug>(QuickFixCurrentNumberQLast)
     nmap g[l    <Plug>(QuickFixCurrentNumberLFirst)
     nmap g]l    <Plug>(QuickFixCurrentNumberLLast)
-<
+If you want no or only a few of the available mappings, you can completely
+turn off the creation of the default mappings via: >
+    :let g:no_QuickFixCurrentNumber_maps = 1
+This saves you from mapping dummy keys to all unwanted mapping targets.
+
 ==============================================================================
 LIMITATIONS				   *QuickFixCurrentNumber-limitations*
 
@@ -100,6 +105,20 @@ IDEAS						 *QuickFixCurrentNumber-ideas*
 
 ==============================================================================
 HISTORY					       *QuickFixCurrentNumber-history*
+
+1.11	11-Mar-2015
+- :Cgo and :Lgo take [!] to behave like g<C-Q>, i.e. jump back to the last
+  error instead of aborting. This is helpful because g<C-Q> only crudely
+  distinguishes between location and quickfix list, and both may be in use.
+  Thanks to Enno Nagel for the suggestion.
+- Allow to disable all default mappings via g:no_QuickFixCurrentNumber_maps.
+  Some users may prefer straightforward navigation through quickfix errors
+  with ]q (e.g. as provided by the unimpaired.vim plugin).
+- BUG: Script errors when jump mappings like ]q are executed in a quickfix /
+  location list. Need to populate the bufferQflist property in the returned
+  result and tweak the check in QuickFixCurrentNumber#Next(). Thanks to Enno
+  Nagel for reporting this.
+- Use ingo/err.vim for error reporting.
 
 1.10	08-Mar-2015
 - g<C-Q> now also jumps to the last item if the cursor is after all errors;
